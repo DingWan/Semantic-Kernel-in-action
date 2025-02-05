@@ -1,0 +1,51 @@
+import torch
+from torch import nn
+from transformers import BertTokenizer, BertModel
+
+class DeepSeekR1(nn.Module):
+    def __init__(self, vocab_size, hidden_dim, num_heads, num_layers, dropout=0.1):
+        super(DeepSeekR1, self).__init__()
+        self.hidden_dim = hidden_dim
+        self.num_heads = num_heads
+        self.num_layers = num_layers
+        
+        # Encoder layers
+        encoder_layer = nn.TransformerEncoderLayer(d_model=hidden_dim, nhead=num_heads, dropout=dropout)
+        self.encoder = nn.TransformerEncoder(encoder_layer, num_layers=num_layers)
+        
+        # Input embedding layer
+        self.embedding = nn.Embedding(vocab_size, hidden_dim)
+        
+        # Output layer
+        self.output = nn.Linear(hidden_dim, vocab_size)
+    
+    def forward(self, src):
+        embedded = self.embedding(src)
+        encoded = self.encoder(embedded)
+        output = self.output(encoded)
+        return output
+
+# 参数设置
+vocab_size = 30522 # BERT-base模型的词汇表大小
+hidden_dim = 768   # BERT-base模型的隐藏层维度
+num_heads = 12     # BERT-base模型的头数
+num_layers = 12    # BERT-base模型的编码器层数
+dropout = 0.1      # Dropout率
+batch_size = 32    # Batch大小
+seq_length = 64    # 序列长度
+
+# 创建模型实例
+model = DeepSeekR1(vocab_size, hidden_dim, num_heads, num_layers, dropout)
+
+# 随机生成一个输入张量
+src = torch.randint(0, vocab_size, (batch_size, seq_length))
+
+# 前向传播
+output = model(src)
+print(output.shape) # 输出形状应为 (batch_size, seq_length, vocab_size)
+
+# 打印模型参数数量
+def count_parameters(model):
+    return sum(p.numel() for p in model.parameters() if p.requires_grad)
+
+print(f"Number of parameters: {count_parameters(model)}")
